@@ -48,12 +48,13 @@ const tempWatchedData = [
 ];
 
 const KEY = "2516960e";
-
+const tempQuery = "pokemon";
 const average = (arr) =>
   arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
 
 export default function App() {
-  const [movies, setMovies] = useState(tempMovieData);
+  const [query, setQuery] = useState("");
+  const [movies, setMovies] = useState([]);
   const [watched, setWatched] = useState(tempWatchedData);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -62,8 +63,9 @@ export default function App() {
     async function fetchData() {
       try {
         setIsLoading(true);
+        setError("");
         const resp = await fetch(
-          `http://www.omdbapi.com/?apikey=${KEY}&s=pokemon`
+          `http://www.omdbapi.com/?apikey=${KEY}&s=${query}`
         );
 
         if (!resp.ok) throw new Error("Something went wrong fetching movies");
@@ -80,13 +82,19 @@ export default function App() {
       }
     }
 
+    if (query.length < 3) {
+      setMovies([]);
+      setError("");
+      return;
+    }
+
     fetchData();
-  }, []);
+  }, [query]);
 
   return (
     <>
       <NavBar>
-        <Search />
+        <Search query={query} setQuery={setQuery} />
         <NumResults movies={movies} />
       </NavBar>
 
@@ -132,9 +140,7 @@ function Logo() {
   );
 }
 
-function Search() {
-  const [query, setQuery] = useState("");
-
+function Search({ query, setQuery }) {
   return (
     <input
       className="search"
