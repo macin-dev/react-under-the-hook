@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import StarRating from "./StarRating";
 import { useMovies } from "./useMovies";
+import { useLocalStorageState } from "./useLocalStorageState";
+import { useKey } from "./useKey";
 
 const KEY = "2516960e";
 const average = (arr) =>
@@ -9,11 +11,8 @@ const average = (arr) =>
 export default function App() {
   const [query, setQuery] = useState("");
   const [selectedID, setSelectedID] = useState(null);
-  const [watched, setWatched] = useState(() => {
-    const storage = localStorage.getItem("watched");
-    return JSON.parse(storage) || [];
-  });
   const { movies, isLoading, error } = useMovies(query);
+  const [watched, setWatched] = useLocalStorageState([], "watched");
 
   const handleSelectedMovie = (id) => {
     setSelectedID((selectedID) => (id === selectedID ? null : id));
@@ -32,10 +31,6 @@ export default function App() {
       watchedMovie.filter((movie) => movie.imdbID !== id)
     );
   };
-
-  useEffect(() => {
-    localStorage.setItem("watched", JSON.stringify(watched));
-  }, [watched]);
 
   return (
     <>
@@ -104,24 +99,11 @@ function Logo() {
 function Search({ query, setQuery }) {
   const inputEl = useRef(null);
 
-  useEffect(() => {
+  useKey("enter", () => {
+    if (document.activeElement === inputEl.current) return;
     inputEl.current.focus();
-
-    const callback = (e) => {
-      if (document.activeElement === inputEl.current) return;
-
-      if (e.code === "Enter") {
-        inputEl.current.focus();
-        setQuery("");
-      }
-    };
-
-    document.addEventListener("keydown", callback);
-
-    return () => {
-      document.removeEventListener("keydown", callback);
-    };
-  }, [setQuery]);
+    setQuery("");
+  });
 
   return (
     <input
@@ -160,31 +142,6 @@ function Box({ children }) {
     </div>
   );
 }
-
-/*
-function WatchedBox() {
-  const [watched, setWatched] = useState(tempWatchedData);
-  const [isOpen2, setIsOpen2] = useState(true);
-
-  return (
-    <div className="box">
-      <button
-        className="btn-toggle"
-        onClick={() => setIsOpen2((open) => !open)}
-      >
-        {isOpen2 ? "–" : "+"}
-      </button>
-
-      {isOpen2 && (
-        <>
-          <WatchedSummary watched={watched} />
-          <WatchedMoviesList watched={watched} />
-        </>
-      )}
-    </div>
-  );
-}
-*/
 
 function MovieList({ movies, onSelectedMovie }) {
   return (
@@ -260,19 +217,8 @@ function MovieDetails({ selectedID, onBack, onAddWatched, watched }) {
     if (userRating) countRef.current++;
   }, [userRating]);
 
-  useEffect(() => {
-    const callback = (e) => {
-      if (e.code === "Escape") {
-        onBack();
-      }
-    };
-
-    document.addEventListener("keydown", callback);
-
-    return () => {
-      document.removeEventListener("keydown", callback);
-    };
-  }, [onBack]);
+  // Custom hook
+  useKey("escape", onBack);
 
   useEffect(() => {
     async function getMovieDetails() {
