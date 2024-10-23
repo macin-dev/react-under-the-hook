@@ -265,6 +265,8 @@ function MovieDetails({ selectedID, onBack, onAddWatched, watched }) {
   const [isLoading, setIsLoading] = useState(false);
   const [userRating, setUserRating] = useState(0);
 
+  const countRef = useRef(0);
+
   const {
     Poster: poster,
     Released: released,
@@ -292,11 +294,16 @@ function MovieDetails({ selectedID, onBack, onAddWatched, watched }) {
       imdbRating: Number(imdbRating),
       runtime: Number(runtime.split(" ").at(0)),
       userRating,
+      userRatingDesicions: countRef.current,
     };
 
     onAddWatched(newMovie);
     onBack(null);
   };
+
+  useEffect(() => {
+    if (userRating) countRef.current++;
+  }, [userRating]);
 
   useEffect(() => {
     const callback = (e) => {
