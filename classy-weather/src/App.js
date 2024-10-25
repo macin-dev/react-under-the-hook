@@ -8,22 +8,62 @@ function convertToFlag(countryCode) {
   return String.fromCodePoint(...codePoints);
 }
 
+function getWeatherIcon(wmoCode) {
+  const icons = new Map([
+    [[0], "☀️"],
+    [[1], "🌤"],
+    [[2], "⛅️"],
+    [[3], "☁️"],
+    [[45, 48], "🌫"],
+    [[51, 56, 61, 66, 80], "🌦"],
+    [[53, 55, 63, 65, 57, 67, 81, 82], "🌧"],
+    [[71, 73, 75, 77, 85, 86], "🌨"],
+    [[95], "🌩"],
+    [[96, 99], "⛈"],
+  ]);
+  const arr = [...icons.keys()].find((key) => key.includes(wmoCode));
+  if (!arr) return "NOT FOUND";
+  return icons.get(arr);
+}
+
+function formatDay(dateStr) {
+  return new Intl.DateTimeFormat("en", {
+    weekday: "short",
+  }).format(new Date(dateStr));
+}
+
 class App extends React.Component {
+  //class field
+  state = {
+    location: "",
+    isLoading: false,
+    displayFlag: "",
+    weather: {},
+  };
+
   constructor(props) {
     super(props);
-
-    this.state = {
-      location: "Mexico",
-      isLoading: false,
-      displayFlag: "",
-      weather: {},
-    };
-
     this.fetchWeather = this.fetchWeather.bind(this);
+    this.onChangeLocation = this.onChangeLocation.bind(this);
   }
 
+  componentDidMount() {
+    // this.fetchWeather();
+    this.setState({ location: localStorage.getItem("location") || "" });
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (this.state.location !== prevState.location) {
+      this.fetchWeather();
+    }
+
+    localStorage.setItem("location", this.state.location);
+  }
+
+  // Method instance set on the constructor's prototypes
   async fetchWeather() {
     try {
+      if (this.state.location.length < 2) return this.setState({ weather: {} });
       this.setState({ isLoading: true });
 
       // 1) Getting location (geocoding)
@@ -46,10 +86,15 @@ class App extends React.Component {
       const weatherData = await weatherRes.json();
       this.setState({ weather: weatherData.daily });
     } catch (err) {
-      console.err(err);
+      console.error(err);
     } finally {
       this.setState({ isLoading: false });
     }
+  }
+
+  onChangeLocation(e) {
+    console.log(this);
+    this.setState({ location: e.target.value });
   }
 
   render() {
@@ -57,18 +102,87 @@ class App extends React.Component {
       <div className="app">
         <h1>Classy weather</h1>
         <div>
-          <input
-            type="text"
-            placeholder="Search from location..."
-            onChange={(e) => this.setState({ location: e.target.value })}
+          <Input
+            location={this.state.location}
+            onChangeLocation={this.onChangeLocation}
           />
         </div>
         <button onClick={this.fetchWeather}>Get weather</button>
 
         {this.state.isLoading && <p className="loader">Loading...</p>}
+
+        {this.state.weather.weathercode && (
+          <Weather
+            weather={this.state.weather}
+            location={this.state.displayFlag}
+            another={true}
+          />
+        )}
       </div>
     );
   }
 }
 
 export default App;
+
+class Input extends React.Component {
+  render() {
+    return (
+      <input
+        type="text"
+        value={this.props.location}
+        placeholder="Search from location..."
+        onChange={this.props.onChangeLocation}
+      />
+    );
+  }
+}
+
+class Weather extends React.Component {
+  componentWillUnmount() {
+    console.log("component unmounted");
+  }
+
+  render() {
+    const {
+      temperature_2m_max: max,
+      temperature_2m_min: min,
+      time: date,
+      weathercode: code,
+    } = this.props.weather;
+
+    return (
+      <div>
+        <h2>Weather {this.props.location}</h2>
+        <ul className="weather">
+          {date.map((date, i) => (
+            <Day
+              key={date}
+              date={date}
+              max={max.at(i)}
+              min={min.at(i)}
+              code={code.at(i)}
+              isToday={i === 1}
+            />
+          ))}
+        </ul>
+      </div>
+    );
+  }
+}
+
+class Day extends React.Component {
+  render() {
+    const { max, min, date, code, isToday } = this.props;
+
+    return (
+      <li className="day">
+        <span>{getWeatherIcon(code)}</span>
+        <p>{isToday ? "TODAY" : formatDay(date)}</p>
+        <p>
+          {Math.floor(min)}&deg; &mdash; <strong>{Math.ceil(max)}&deg;</strong>
+        </p>
+      </li>
+    );
+  }
+}
