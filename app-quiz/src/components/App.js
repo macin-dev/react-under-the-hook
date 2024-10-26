@@ -5,23 +5,29 @@ import Loader from "./Loader";
 import Error from "./Error";
 import { Home } from "./Home";
 import { Question } from "./Question";
+import { NextButton } from "./NextButton";
+import { Progress } from "./Progress";
+import { FinalScreen } from "./FinalScreen";
 
 const initialState = {
   questions: [],
-  isLoading: "loading",
+  status: "loading",
   index: 0,
   answer: null,
   points: 0,
+  highScore: 0,
 };
 
 function reducer(state, action) {
   switch (action.type) {
     case "dataReceived":
-      return { ...state, questions: action.payload, isLoading: "ready" };
+      return { ...state, questions: action.payload, status: "ready" };
     case "dataFailed":
-      return { ...state, isLoading: "error" };
+      return { ...state, status: "error" };
     case "start":
-      return { ...state, isLoading: "active" };
+      return { ...state, status: "active" };
+    case "nextQuestion":
+      return { ...state, index: state.index + 1, answer: null };
     case "newAnswer":
       const question = state.questions.at(state.index);
       return {
@@ -32,6 +38,15 @@ function reducer(state, action) {
             ? state.points + question.points
             : state.points,
       };
+    case "finished":
+      return {
+        ...state,
+        status: "finished",
+        highScore:
+          state.points > state.highScore ? state.points : state.highScore,
+      };
+    case "restart":
+      return { ...initialState, questions: state.questions, status: "ready" };
     default:
       throw new Error("Type unknown");
   }
@@ -40,8 +55,12 @@ function reducer(state, action) {
 export const App = () => {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  const { questions, isLoading, index, answer } = state;
+  const { questions, status, index, answer, points, highScore } = state;
   const numQuestions = questions.length;
+  const maxPossiblePoints = questions.reduce(
+    (prev, next) => prev + next.points,
+    0
+  );
 
   useEffect(() => {
     fetch("http://localhost:9000/questions")
@@ -54,15 +73,38 @@ export const App = () => {
     <div className="app">
       <Header />
       <Main>
-        {isLoading === "loading" && <Loader />}
-        {isLoading === "error" && <Error />}
-        {isLoading === "ready" && (
+        {status === "loading" && <Loader />}
+        {status === "error" && <Error />}
+        {status === "ready" && (
           <Home numQuestions={numQuestions} dispatch={dispatch} />
         )}
-        {isLoading === "active" && (
-          <Question
-            question={questions[index]}
-            answer={answer}
+        {status === "active" && (
+          <>
+            <Progress
+              index={index}
+              numQuestions={numQuestions}
+              points={points}
+              maxPossiblePoints={maxPossiblePoints}
+              answer={answer}
+            />
+            <Question
+              question={questions[index]}
+              answer={answer}
+              dispatch={dispatch}
+            />
+            <NextButton
+              dispatch={dispatch}
+              answer={answer}
+              index={index}
+              numQuestions={numQuestions}
+            />
+          </>
+        )}
+        {status === "finished" && (
+          <FinalScreen
+            points={points}
+            maxPossiblePoints={maxPossiblePoints}
+            highScore={highScore}
             dispatch={dispatch}
           />
         )}
