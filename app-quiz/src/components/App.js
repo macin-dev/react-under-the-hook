@@ -4,10 +4,14 @@ import { Main } from "./Main";
 import Loader from "./Loader";
 import Error from "./Error";
 import { Home } from "./Home";
+import { Question } from "./Question";
 
 const initialState = {
   questions: [],
   isLoading: "loading",
+  index: 0,
+  answer: null,
+  points: 0,
 };
 
 function reducer(state, action) {
@@ -16,6 +20,18 @@ function reducer(state, action) {
       return { ...state, questions: action.payload, isLoading: "ready" };
     case "dataFailed":
       return { ...state, isLoading: "error" };
+    case "start":
+      return { ...state, isLoading: "active" };
+    case "newAnswer":
+      const question = state.questions.at(state.index);
+      return {
+        ...state,
+        answer: action.payload,
+        points:
+          action.payload === question.correctOption
+            ? state.points + question.points
+            : state.points,
+      };
     default:
       throw new Error("Type unknown");
   }
@@ -24,7 +40,7 @@ function reducer(state, action) {
 export const App = () => {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  const { questions, isLoading } = state;
+  const { questions, isLoading, index, answer } = state;
   const numQuestions = questions.length;
 
   useEffect(() => {
@@ -40,7 +56,16 @@ export const App = () => {
       <Main>
         {isLoading === "loading" && <Loader />}
         {isLoading === "error" && <Error />}
-        {isLoading === "ready" && <Home numQuestions={numQuestions} />}
+        {isLoading === "ready" && (
+          <Home numQuestions={numQuestions} dispatch={dispatch} />
+        )}
+        {isLoading === "active" && (
+          <Question
+            question={questions[index]}
+            answer={answer}
+            dispatch={dispatch}
+          />
+        )}
       </Main>
     </div>
   );
