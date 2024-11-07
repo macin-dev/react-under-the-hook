@@ -23,6 +23,18 @@
         "lng": -3.7133789062500004
       },
       "id": "17806751"
+    },
+    {
+      "id": "9672",
+      "cityName": "Ardersier",
+      "country": "United Kingdom of Great Britain and Northern Ireland (the)",
+      "emoji": "🇬🇧",
+      "date": "2024-11-07T20:37:10.296Z",
+      "notes": "Testing",
+      "position": {
+        "lat": "57.492213666700756",
+        "lng": "-4.042968750000001"
+      }
     }
   ]
 }
